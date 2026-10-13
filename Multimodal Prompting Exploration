@@ -1,41 +1,56 @@
-# WEEK 15: MULTIMODAL PROMPTING EXPLORATION
+ # WEEK 14: BUILDING A SIMPLE LLM AGENT
 # Install:
-# pip install openai
+# pip install langchain langchain-openai
  
-from openai import OpenAI
-import base64
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+from langchain.agents import create_agent
  
-print("===== WEEK 15: MULTIMODAL PROMPTING =====")
+print("===== WEEK 14: SIMPLE LLM AGENT =====")
  
-client = OpenAI(api_key="YOUR_OPENAI_API_KEY")
+@tool
+def calculator(expression: str) -> str:
+    """Calculate a basic mathematical expression."""
+    try:
+        result = eval(expression)
+        return str(result)
+    except Exception as e:
+        return f"Error: {e}"
  
-image_path = "sample.jpg"
+llm = ChatOpenAI(
+    model="gpt-4o-mini",
+    api_key="YOUR_OPENAI_API_KEY"
+)
  
-with open(image_path, "rb") as image_file:
-    base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+agent = create_agent(
+    model=llm,
+    tools=[calculator],
+    system_prompt="""
+    You are a helpful AI assistant.
+    Use the calculator tool whenever a mathematical calculation is required.
+    """
+)
+ 
+question = "What is 245 multiplied by 786?"
+ 
+print("\nUser Question:")
+print(question)
  
 try:
-    response = client.responses.create(
-        model="gpt-4o-mini",
-        input=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": "Describe this image in simple words and list the important objects visible."
-                    },
-                    {
-                        "type": "input_image",
-                        "image_url": f"data:image/jpeg;base64,{base64_image}"
-                    }
-                ]
-            }
-        ]
+    response = agent.invoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ]
+        }
     )
  
-    print("\n--- MULTIMODAL RESPONSE ---")
-    print(response.output_text)
+    print("\n--- AGENT RESPONSE ---")
+    print(response["messages"][-1].content)
  
 except Exception as e:
     print("\nError:", e)
+ 
